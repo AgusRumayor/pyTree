@@ -5,6 +5,7 @@ try:
     from .node import Node
 except:
     from node import Node 
+from persistent import Persistent
 
 __author__ = 'chenxm'
 
@@ -22,7 +23,7 @@ class LinkPastRootNodeError(Exception):
     pass
 
 
-class Tree(object):
+class Tree(Persistent):
 
     (ROOT, DEPTH, WIDTH, ZIGZAG) = list(range(4))
 
@@ -153,6 +154,7 @@ class Tree(object):
         #Delete the node
         parent.update_fpointer(nid, mode=parent.DELETE)
         del(self._nodes[nid])
+	self._p_changed = True
 
 
     def add_node(self, node, parent=None):
@@ -177,6 +179,7 @@ class Tree(object):
         self._nodes.update({node.identifier : node})
         self.__update_fpointer(parent, node.identifier, Node.ADD)
         self.__update_bpointer(node.identifier, parent)
+	self._p_changed = True
 
 
     def create_node(self, tag=None, identifier=None, parent=None):
@@ -185,7 +188,19 @@ class Tree(object):
         """
         node = Node(tag, identifier)
         self.add_node(node, parent)
+	self._p_changed = True
         return node
+
+    def search_tag(self, tag):
+	"""
+        Returning a list of nodes with that tag.
+	Empty list if not found
+        """
+	nodes = []
+	for nodeid in self.expand_tree():
+	    if(self[nodeid].tag == tag):
+	    	nodes.append(self[nodeid])
+	return nodes
 
 
     def expand_tree(self, nid=None, mode=DEPTH, filter=None, key=None, reverse=False):
@@ -244,6 +259,7 @@ class Tree(object):
         self.__update_fpointer(parent, source, Node.DELETE)
         self.__update_fpointer(destination, source, Node.ADD)
         self.__update_bpointer(source, destination)
+	self._p_changed = True
 
 
     def paste(self, nid, new_tree, deepcopy=False):
@@ -271,6 +287,7 @@ class Tree(object):
             self._nodes.update(new_tree._nodes)
         self.__update_fpointer(nid, new_tree.root, Node.ADD)
         self.__update_bpointer(new_tree.root, nid)
+	self._p_changed = True
 
 
     def remove_node(self, identifier):
@@ -296,6 +313,7 @@ class Tree(object):
             del(self._nodes[id])
         # Update its parent info
         self.__update_fpointer(parent, identifier, Node.DELETE)
+	self._p_changed = True
         return cnt
 
 
@@ -445,6 +463,7 @@ class Tree(object):
             st._nodes.update({id: self._nodes.pop(id)})
         # Update its parent info
         self.__update_fpointer(parent, nid, Node.DELETE)
+	self._p_changed = True
         return st
 
 
@@ -463,6 +482,7 @@ class Tree(object):
 
     def __setitem__(self, key, item):
         self._nodes.update({key: item})
+	self._p_changed = True
 
 
     def __update_bpointer(self, nid, parent_id):
